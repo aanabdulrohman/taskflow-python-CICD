@@ -14,13 +14,16 @@ services:
     networks:
       - taskflow-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p{MYSQL_ROOT_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   backend-service:
-    image: USERNAME_DOCKERHUB/taskflow-backend:${IMAGE_TAG:-1.0.0}
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: ${DOCKERHUB_USERNAME}/taskflow-backend:${IMAGE_TAG}
     container_name: taskflow-backend
     environment:
       MYSQL_USER: ${MYSQL_USER}
@@ -37,10 +40,10 @@ services:
       - taskflow-network
 
   gateway-service:
-    image: USERNAME_DOCKERHUB/taskflow-gateway:${IMAGE_TAG:-1.0.0}
     build:
       context: .
       dockerfile: gateway/Dockerfile
+    image: ${DOCKERHUB_USERNAME}/taskflow-gateway:${IMAGE_TAG}
     container_name: taskflow-gateway
     ports:
       - "8080:80"
