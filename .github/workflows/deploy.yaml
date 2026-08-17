@@ -6,9 +6,6 @@ on:
       - '*.*.*'
 
 jobs:
-  # -------------------------------------------------------------
-  # JOB 1: Unit Testing
-  # -------------------------------------------------------------
   test:
     name: Run Pytest Unit Tests
     runs-on: self-hosted
@@ -29,11 +26,9 @@ jobs:
           source venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
-          pytest
+          python -m pytest
 
-  # -------------------------------------------------------------
-  # JOB 2: Security Scanning dengan Trivy
-  # -------------------------------------------------------------
+ 
   security-scan:
     name: Trivy Vulnerability Scan
     needs: test
