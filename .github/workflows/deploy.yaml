@@ -1,0 +1,82 @@
+name: TaskFlow Tag-Based CI/CD Pipeline
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+jobs:
+  test:
+    name: Run Pytest Unit Tests
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies & Run Tests
+        run: |
+          cd backend
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pytest
+
+  security-scan:
+    name: Trivy Vulnerability Scan
+    needs: test
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Extract Tag Name
+        id: vars
+        run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Build Backend Docker Image for Scanning
+        run: |
+          docker build -t taskflow-backend:${{ env.TAG_NAME }} ./backend
+
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'taskflow-backend:${{ env.TAG_NAME }}'
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+
+  deploy:
+    name: Deploy Tag Version via Docker Compose
+    needs: security-scan
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Inject ENV_FILE & Set IMAGE_TAG
+        run: |
+          # Inject seluruh isi secret ENV_FILE
+          echo "${{ secrets.ENV_FILE }}" > .env
+          
+          # Tambahkan variabel IMAGE_TAG berdasarkan tag Git yang di-push
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          echo "IMAGE_TAG=${TAG_NAME}" >> .env
+          echo "Running deployment for Version Tag: ${TAG_NAME}"
+
+      - name: Stop Local MySQL Service if running
+        run: |
+          sudo systemctl stop mysql || true
+
+      - name: Deploy with Docker Compose
+        run: |
+          docker-compose down
+          docker-compose up --build -d

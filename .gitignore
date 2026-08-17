@@ -1,0 +1,20 @@
+# Environment variables (Sangat Penting: Mencegah bocornya kredensial ke Git)
+.env
+*.env
+
+# Python Virtual Environment & Caches
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# Operating System
+.DS_Store
+Thumbs.db
