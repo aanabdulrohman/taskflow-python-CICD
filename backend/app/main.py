@@ -1,15 +1,18 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
-# Import engine dari database.py dan models dari models.py
 from app.database import get_db, engine
 from app import models, schemas
 
-# OTOMATISASI: Buat semua tabel yang terdefinisi di models.py jika belum ada di DB
-models.Base.metadata.create_all(bind=engine)
+# Hanya jalankan create_all saat server uvicorn sebenarnya dinyalakan (bukan saat di-import oleh pytest)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    models.Base.metadata.create_all(bind=engine)
+    yield
 
-app = FastAPI(title="TaskFlow API Service")
+app = FastAPI(title="TaskFlow API Service", lifespan=lifespan)
 
 @app.get("/health")
 def health_check():
