@@ -55,11 +55,7 @@ jobs:
           echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
           echo "IMAGE_TAG=${TAG_NAME}" >> .env
 
-      - name: Stop Local MySQL Service if running
-        run: |
-          sudo systemctl stop mysql || true
-
       - name: Deploy with Production Docker Compose
         run: |
-          docker-compose -f docker-compose.prod.yml down
-          docker-compose -f docker-compose.prod.yml up -d
+          docker-compose -f docker-compose.prod.yaml down
+          docker-compose -f docker-compose.prod.yaml up -d
