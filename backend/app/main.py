@@ -1,18 +1,11 @@
-from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.database import get_db, engine
+from app.database import get_db
 from app import models, schemas
 
-# Hanya jalankan create_all saat server uvicorn sebenarnya dinyalakan (bukan saat di-import oleh pytest)
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    models.Base.metadata.create_all(bind=engine)
-    yield
-
-app = FastAPI(title="TaskFlow API Service", lifespan=lifespan)
+app = FastAPI(title="TaskFlow API Service")
 
 @app.get("/health")
 def health_check():

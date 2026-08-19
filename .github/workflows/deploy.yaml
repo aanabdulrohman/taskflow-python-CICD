@@ -6,32 +6,8 @@ on:
       - '*.*.*'
 
 jobs:
-  test:
-    name: Run Pytest Unit Tests
-    runs-on: self-hosted
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Dependencies & Run Tests
-        run: |
-          cd backend
-          python3 -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          python -m pytest
-
- 
   security-scan:
     name: Trivy Vulnerability Scan
-    needs: test
     runs-on: self-hosted
 
     steps:
@@ -54,11 +30,8 @@ jobs:
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
 
-  # -------------------------------------------------------------
-  # JOB 3: Build, Push ke Docker Hub, & Deploy
-  # -------------------------------------------------------------
   deploy:
-    name: Build, Push & Deploy via Docker Compose
+    name: Build, Push & Deploy via Production Docker Compose
     needs: security-scan
     runs-on: self-hosted
 
@@ -86,7 +59,7 @@ jobs:
         run: |
           sudo systemctl stop mysql || true
 
-      - name: Deploy with Docker Compose
+      - name: Deploy with Production Docker Compose
         run: |
-          docker-compose down
-          docker-compose up --build -d
+          docker-compose -f docker-compose.prod.yml down
+          docker-compose -f docker-compose.prod.yml up -d

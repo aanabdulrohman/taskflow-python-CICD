@@ -1,20 +1,20 @@
 services:
   db-service:
     image: mysql:8.0
-    container_name: taskflow-db
+    container_name: taskflow-db-dev
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootsecret}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-taskflow_db}
+      MYSQL_USER: ${MYSQL_USER:-taskuser}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-taskpassword}
     ports:
       - "3306:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql_dev_data:/var/lib/mysql
     networks:
       - taskflow-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootsecret}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -23,16 +23,17 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: ${DOCKERHUB_USERNAME}/taskflow-backend:${IMAGE_TAG}
-    container_name: taskflow-backend
+    container_name: taskflow-backend-dev
     environment:
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_HOST: ${MYSQL_HOST}
-      MYSQL_PORT: ${MYSQL_PORT}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER:-taskuser}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-taskpassword}
+      MYSQL_HOST: db-service
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-taskflow_db}
     ports:
       - "8000:8000"
+    volumes:
+      - ./backend:/app # Live reload lokal
     depends_on:
       db-service:
         condition: service_healthy
@@ -43,10 +44,11 @@ services:
     build:
       context: .
       dockerfile: gateway/Dockerfile
-    image: ${DOCKERHUB_USERNAME}/taskflow-gateway:${IMAGE_TAG}
-    container_name: taskflow-gateway
+    container_name: taskflow-gateway-dev
     ports:
       - "8080:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html # Live update frontend
     depends_on:
       - backend-service
     networks:
@@ -57,4 +59,4 @@ networks:
     driver: bridge
 
 volumes:
-  mysql_data:
+  mysql_dev_data:

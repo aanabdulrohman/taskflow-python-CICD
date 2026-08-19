@@ -1,0 +1,60 @@
+services:
+  db-service:
+    image: mysql:8.0
+    container_name: taskflow-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - taskflow-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend-service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: ${DOCKERHUB_USERNAME}/taskflow-backend:${IMAGE_TAG}
+    container_name: taskflow-backend
+    environment:
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_HOST: ${MYSQL_HOST}
+      MYSQL_PORT: ${MYSQL_PORT}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db-service:
+        condition: service_healthy
+    networks:
+      - taskflow-network
+
+  gateway-service:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    image: ${DOCKERHUB_USERNAME}/taskflow-gateway:${IMAGE_TAG}
+    container_name: taskflow-gateway
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend-service
+    networks:
+      - taskflow-network
+
+networks:
+  taskflow-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
